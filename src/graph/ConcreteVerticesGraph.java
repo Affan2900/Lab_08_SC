@@ -1,86 +1,106 @@
-/* Copyright (c) 2015-2016 MIT 6.005 course staff, all rights reserved.
- * Redistribution of original or derived work requires permission of course staff.
- */
 package graph;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-/**
- * An implementation of Graph.
- * 
- * <p>PS2 instructions: you MUST use the provided rep.
- */
-public class ConcreteVerticesGraph implements Graph<String> {
-    
+public class ConcreteVerticesGraph implements Graph<Vertex> {
     private final List<Vertex> vertices = new ArrayList<>();
-    
-    // Abstraction function:
-    //   TODO
-    // Representation invariant:
-    //   TODO
-    // Safety from rep exposure:
-    //   TODO
-    
-    // TODO constructor
-    
-    // TODO checkRep
-    
-    @Override public boolean add(String vertex) {
-        throw new RuntimeException("not implemented");
-    }
-    
-    @Override public int set(String source, String target, int weight) {
-        throw new RuntimeException("not implemented");
-    }
-    
-    @Override public boolean remove(String vertex) {
-        throw new RuntimeException("not implemented");
-    }
-    
-    @Override public Set<String> vertices() {
-        throw new RuntimeException("not implemented");
-    }
-    
-    @Override public Map<String, Integer> sources(String target) {
-        throw new RuntimeException("not implemented");
-    }
-    
-    @Override public Map<String, Integer> targets(String source) {
-        throw new RuntimeException("not implemented");
-    }
-    
-    // TODO toString()
-    
-}
+    private final Map<Vertex, List<Edge<Vertex>>> adjacencyList = new HashMap<>();
 
-/**
- * TODO specification
- * Mutable.
- * This class is internal to the rep of ConcreteVerticesGraph.
- * 
- * <p>PS2 instructions: the specification and implementation of this class is
- * up to you.
- */
-class Vertex {
-    
-    // TODO fields
-    
-    // Abstraction function:
-    //   TODO
-    // Representation invariant:
-    //   TODO
-    // Safety from rep exposure:
-    //   TODO
-    
-    // TODO constructor
-    
-    // TODO checkRep
-    
-    // TODO methods
-    
-    // TODO toString()
-    
+    @Override
+    public void addVertex(Vertex vertex) {
+        if (!vertices.contains(vertex)) {
+            vertices.add(vertex);
+            adjacencyList.put(vertex, new ArrayList<>());
+        }
+    }
+
+    @Override
+    public void removeVertex(Vertex vertex) {
+        vertices.remove(vertex);
+        adjacencyList.remove(vertex);
+        for (List<Edge<Vertex>> edges : adjacencyList.values()) {
+            edges.removeIf(edge -> edge.getTarget().equals(vertex));
+        }
+    }
+
+    @Override
+    public boolean hasEdge(Vertex source, Vertex target) {
+        return adjacencyList.containsKey(source) && 
+               adjacencyList.get(source).stream().anyMatch(edge -> edge.getTarget().equals(target));
+    }
+
+    @Override
+    public void setEdge(Vertex source, Vertex target, int weight) {
+        addVertex(source);
+        addVertex(target);
+        removeEdge(source, target); // Remove any existing edge before adding a new one
+        adjacencyList.get(source).add(new Edge<>(target, weight));
+    }
+
+    @Override
+    public int getEdgeWeight(Vertex source, Vertex target) {
+        if (hasEdge(source, target)) {
+            return adjacencyList.get(source).stream()
+                    .filter(edge -> edge.getTarget().equals(target))
+                    .findFirst()
+                    .get()
+                    .getWeight();
+        }
+        throw new NoSuchElementException("No edge from " + source + " to " + target);
+    }
+
+    @Override
+    public Set<Vertex> getVertices() {
+        return new HashSet<>(vertices);
+    }
+
+    @Override
+    public Set<Vertex> getSources(Vertex target) {
+        Set<Vertex> sources = new HashSet<>();
+        for (Map.Entry<Vertex, List<Edge<Vertex>>> entry : adjacencyList.entrySet()) {
+            for (Edge<Vertex> edge : entry.getValue()) {
+                if (edge.getTarget().equals(target)) {
+                    sources.add(entry.getKey());
+                }
+            }
+        }
+        return sources;
+    }
+
+    @Override
+    public Set<Vertex> getTargets(Vertex source) {
+        Set<Vertex> targets = new HashSet<>();
+        if (adjacencyList.containsKey(source)) {
+            for (Edge<Vertex> edge : adjacencyList.get(source)) {
+                targets.add(edge.getTarget());
+            }
+        }
+        return targets;
+    }
+
+    private void removeEdge(Vertex source, Vertex target) {
+        List<Edge<Vertex>> edges = adjacencyList.get(source);
+        if (edges != null) {
+            edges.removeIf(edge -> edge.getTarget().equals(target));
+        }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("ConcreteVerticesGraph:\n");
+        for (Vertex vertex : vertices) {
+            sb.append(vertex.toString()).append(" -> ");
+            List<Edge<Vertex>> edges = adjacencyList.get(vertex);
+            if (edges != null && !edges.isEmpty()) {
+                for (Edge<Vertex> edge : edges) {
+                    sb.append(edge.getTarget().getId()).append("(").append(edge.getWeight()).append("), ");
+                }
+                sb.setLength(sb.length() - 2); // Remove last comma and space
+            } else {
+                sb.append("No outgoing edges");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
 }
